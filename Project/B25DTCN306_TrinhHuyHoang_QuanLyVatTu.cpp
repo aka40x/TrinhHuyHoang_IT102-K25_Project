@@ -608,6 +608,68 @@ void transaction(Material *arr, int length, Transaction *transArr, int *transLen
 }
 
 //F08
+void listTransaction(Transaction *transArr, int transLen) {
+    if (transLen == 0) {
+        printf("\nChua co giao dich nao!\n");
+        return;
+    }
+
+    int transPerPage = 5;
+    int totalPage = (transLen + transPerPage - 1) / transPerPage;
+    int currentPage = 1;
+    int choice, page;
+
+    do {
+        int start = (currentPage - 1) * transPerPage;
+        int end = start + transPerPage;
+        if (end > transLen) end = transLen;
+
+        printf("\n========== LICH SU GIAO DICH (Trang %d / %d) ==========\n",
+               currentPage, totalPage);
+        printf("%-10s | %-10s | %-5s | %-6s | %-12s\n",
+               "Ma GD", "Ma VT", "Loai", "So luong", "Ngay");
+        printf("----------------------------------------------------\n");
+
+        for (int i = start; i < end; i++) {
+            printf("%-10s | %-10s | %-5s | %-6d | %-12s\n",
+                   transArr[i].transId,
+                   transArr[i].matId,
+                   transArr[i].type,
+                   transArr[i].amount,
+                   transArr[i].date);
+        }
+
+        printf("----------------------------------------------------\n");
+        printf("1. Trang truoc\t2. Trang sau\t3. Den trang\t4. Thoat\n");
+        printf("Lua chon: ");
+        scanf("%d", &choice);
+        getchar();
+
+        switch (choice) {
+            case 1:
+                if (currentPage > 1) currentPage--;
+                else printf("Ban dang o trang dau!\n");
+                break;
+            case 2:
+                if (currentPage < totalPage) currentPage++;
+                else printf("Ban dang o trang cuoi!\n");
+                break;
+            case 3:
+                printf("Nhap so trang muon den (1-%d): ", totalPage);
+                scanf("%d", &page);
+                getchar();
+                if (page >= 1 && page <= totalPage) currentPage = page;
+                else printf("Trang khong ton tai!\n");
+                break;
+            case 4:
+                printf("Thoat lich su giao dich!\n");
+                break;
+            default:
+                printf("Lua chon khong hop le!\n");
+        }
+
+    } while (choice != 4);
+}
 
 int main() {
 	int choice = 0;
@@ -695,7 +757,7 @@ int main() {
                         	transaction(arr, length, transArr, &transLen);
 							break;
                         case 2:
-                        	printf("\nChua lam den\n");
+                        	listTransaction(transArr, transLen);
 							break;
                         case 3:
                         	printf("\nThoat chuong trinh...");
@@ -709,7 +771,7 @@ int main() {
             case 3:
                 printf("Thoat chuong trinh...\n");
                 exit(0);
-
+                
             default:
                 printf("Vui long chon 1-3!\n");
         }
