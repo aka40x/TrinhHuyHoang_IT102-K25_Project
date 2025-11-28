@@ -9,6 +9,10 @@
 #define RED "\033[31m"
 #define GREEN "\033[32m"
 #define YELLOW "\033[33m"
+#define GRAY "\033[90m"
+
+#define MAX_MAT 100
+#define MAX_TRANS 200
 
 // Struct
 struct Material {
@@ -45,31 +49,38 @@ struct Material initList[10] = {
 
 // Ham chung
 int isAllDigit(char s[]) {
-    if (strlen(s) == 0) return 0;
+    if (strlen(s) == 0){
+		return 0;
+	}
     for (int i = 0; s[i] != '\0'; i++) {
-        if (!isdigit(s[i])) return 0;
+        if (!isdigit((unsigned char)s[i]))
+		return 0;
     }
     return 1;
 }
 
 void deleteCharactor(char *string, int index){
     int length = strlen(string);
-    for (int i = index ; i< length - 1;i++){
-        string [i] = string[i+1];
+    if (index < 0 || index >= length) return;
+    for (int i = index ; i < length - 1; i++){
+        string[i] = string[i+1];
     }
-    string [length-1] = '\0';
+    string[length-1] = '\0';
 }
 
 void removeSpaces(char *str) {
+    while (str[0] == ' ') deleteCharactor(str, 0);
     int length = strlen(str);
-    while(length > 0 && str[0] == ' ') { deleteCharactor(str, 0); length--; }
-    while(length > 0 && str[length - 1] == ' ') { str[length - 1] = '\0'; length--; }
+    while (length > 0 && str[length - 1] == ' ') {
+        str[length - 1] = '\0';
+        length--;
+    }
 }
 
 void getString(char *string, char title[], int size) {
     do {
         printf("%s: ", title);
-        fgets(string, size, stdin);
+        if (fgets(string, size, stdin) == NULL) string[0] = '\0';
         string[strcspn(string, "\n")] = 0;
         if (strlen(string) == 0) printf(RED "Khong duoc de trong!\n" RESET);
     } while (strlen(string) == 0);
@@ -80,9 +91,12 @@ int getInt(char title[]) {
     int value;
     while (1) {
         printf("%s: ", title);
-        fgets(temp, sizeof(temp), stdin);
+        if (fgets(temp, sizeof(temp), stdin) == NULL) temp[0] = '\0';
         temp[strcspn(temp, "\n")] = 0;
-        if (!isAllDigit(temp)) { printf(RED "Chi duoc nhap so! Moi nhap lai.\n" RESET); continue; }
+        if (!isAllDigit(temp)) {
+            printf(RED "Chi duoc nhap so! Moi nhap lai.\n" RESET);
+            continue;
+        }
         value = atoi(temp);
         return value;
     }
@@ -91,7 +105,7 @@ int getInt(char title[]) {
 void getIdNumber(char *dest, char title[], int size) {
     do {
         printf("%s: ", title);
-        fgets(dest, size, stdin);
+        if (fgets(dest, size, stdin) == NULL) dest[0] = '\0';
         dest[strcspn(dest, "\n")] = 0;
         if (!isAllDigit(dest)) printf(RED "ID chi duoc chua so!\n" RESET);
     } while (!isAllDigit(dest));
@@ -99,14 +113,40 @@ void getIdNumber(char *dest, char title[], int size) {
 
 int isDuplicateId(Material *arr, int length, char matId[]) {
     for (int i = 0; i < length; i++) {
-        if (strcmp(arr[i].matId, matId) == 0) return 1;
+        if (strcmp(arr[i].matId, matId) == 0)
+		return 1;
     }
     return 0;
 }
 
-void toLower(char *str) {
-    for (int i = 0; str[i]; i++) str[i] = tolower(str[i]);
+void toLowerStr(char *str) {
+    for (int i = 0; str[i]; i++) str[i] = (char)tolower((unsigned char)str[i]);
 }
+
+int getMenuChoice(char *title) {
+    char choiceStr[10];
+    int choice;
+
+    while (1) {
+        printf("%s", title);
+        if (fgets(choiceStr, sizeof(choiceStr), stdin) == NULL) choiceStr[0] = '\0';
+        choiceStr[strcspn(choiceStr, "\n")] = 0;
+        removeSpaces(choiceStr);
+
+        if (strlen(choiceStr) == 0) {
+            printf(RED "Lua chon khong duoc de trong!\n" RESET);
+            continue;
+        }
+        if (!isAllDigit(choiceStr)) {
+            printf(RED "Chi nhap so!\n" RESET);
+            continue;
+        }
+
+        choice = atoi(choiceStr);
+        return choice;
+    }
+}
+
 
 // F01: Them vat tu
 void addMat(Material *arr, int *length) {
@@ -118,24 +158,38 @@ void addMat(Material *arr, int *length) {
         if (index <= 0) printf(RED "So luong phai lon hon 0!\n" RESET);
     } while (index <= 0);
 
+    if (currentIndex + index > MAX_MAT) {
+        printf(YELLOW "Chi con the them toi da %d vat tu.\n" RESET, MAX_MAT - currentIndex);
+        index = MAX_MAT - currentIndex;
+        if (index <= 0) {
+            printf(RED "Da dat gioi han vat tu (%d). Khong the them.\n" RESET, MAX_MAT);
+            return;
+        }
+    }
+
     for (int i = 0; i < index; i++) {
         int pos = currentIndex + i;
         printf("\n--- Vat tu thu %d ---\n", pos + 1);
-        do { getIdNumber(arr[pos].matId, "Nhap ID vat tu", sizeof(arr[pos].matId));
-            if (isDuplicateId(arr, pos, arr[pos].matId)) printf(YELLOW "ID da ton tai!\n" RESET);
-        } while (isDuplicateId(arr, pos, arr[pos].matId));
 
-        do { getString(arr[pos].name, "Nhap ten vat tu", sizeof(arr[pos].name));
+        do {
+            getIdNumber(arr[pos].matId, "Nhap ID vat tu", sizeof(arr[pos].matId));
+            if (isDuplicateId(arr, currentIndex + i, arr[pos].matId)) printf(YELLOW "ID da ton tai!\n" RESET);
+        } while (isDuplicateId(arr, currentIndex + i, arr[pos].matId));
+
+        do {
+            getString(arr[pos].name, "Nhap ten vat tu", sizeof(arr[pos].name));
             removeSpaces(arr[pos].name);
             if (strlen(arr[pos].name) == 0) printf(RED "Ten vat tu khong duoc rong!\n" RESET);
         } while (strlen(arr[pos].name) == 0);
 
-        do { getString(arr[pos].unit, "Nhap don vi", sizeof(arr[pos].unit));
+        do {
+            getString(arr[pos].unit, "Nhap don vi", sizeof(arr[pos].unit));
             removeSpaces(arr[pos].unit);
             if (strlen(arr[pos].unit) == 0) printf(RED "Don vi khong duoc rong!\n" RESET);
         } while (strlen(arr[pos].unit) == 0);
 
-        do { arr[pos].qty = getInt("Nhap so luong ton kho");
+        do {
+            arr[pos].qty = getInt("Nhap so luong ton kho");
             if (arr[pos].qty <= 0) printf(RED "So luong phai > 0!\n" RESET);
         } while (arr[pos].qty <= 0);
 
@@ -149,27 +203,37 @@ void addMat(Material *arr, int *length) {
 void updateMat(Material *arr, int length) {
     char id[10]; int found = -1;
     printf("Nhap ID vat tu muon cap nhat: ");
-    fgets(id, sizeof(id), stdin); id[strcspn(id, "\n")] = 0;
+    if (fgets(id, sizeof(id), stdin) == NULL) id[0] = '\0';
+	id[strcspn(id, "\n")] = 0;
 
     for (int i = 0; i < length; i++)
-        if (strcmp(arr[i].matId, id) == 0) { found = i; break; }
+        if (strcmp(arr[i].matId, id) == 0) {
+			found = i;
+			break;
+		}
 
-    if (found == -1) { printf(RED "Khong tim thay vat tu!\n" RESET); return; }
+    if (found == -1) {
+		printf(RED "Khong tim thay vat tu!\n" RESET);
+		return;
+	}
 
     printf("\n--- Cap nhat thong tin cho vat tu: %s ---\n", arr[found].matId);
 
     do { getString(arr[found].name, "Nhap ten moi", sizeof(arr[found].name));
         removeSpaces(arr[found].name);
-        if (strlen(arr[found].name) == 0) printf(RED "Ten vat tu khong duoc rong!\n" RESET);
+        if (strlen(arr[found].name) == 0)
+			printf(RED "Ten vat tu khong duoc rong!\n" RESET);
     } while (strlen(arr[found].name) == 0);
 
     do { getString(arr[found].unit, "Nhap don vi moi", sizeof(arr[found].unit));
         removeSpaces(arr[found].unit);
-        if (strlen(arr[found].unit) == 0) printf(RED "Don vi khong duoc rong!\n" RESET);
+        if (strlen(arr[found].unit) == 0)
+			printf(RED "Don vi khong duoc rong!\n" RESET);
     } while (strlen(arr[found].unit) == 0);
 
     do { arr[found].qty = getInt("Nhap so luong ton kho moi");
-        if (arr[found].qty < 0) printf(RED "So luong phai >= 0!\n" RESET);
+        if (arr[found].qty < 0)
+			printf(RED "So luong phai >= 0!\n" RESET);
     } while (arr[found].qty < 0);
 
     printf(GREEN "\nCap nhat thanh cong!\n" RESET);
@@ -180,8 +244,13 @@ void lockMat(Material *arr, int length) {
     char id[10]; getIdNumber(id, "Nhap ID vat tu can khoa", sizeof(id));
     for (int i = 0; i < length; i++) {
         if (strcmp(arr[i].matId, id) == 0) {
-            if (arr[i].status == 0) { printf(YELLOW "Vat tu da bi khoa truoc do!\n" RESET); return; }
-            arr[i].status = 0; printf(GREEN "Khoa vat tu thanh cong!\n" RESET); return;
+            if (arr[i].status == 0) {
+				printf(YELLOW "Vat tu da bi khoa truoc do!\n" RESET);
+				return;
+			}
+            arr[i].status = 0;
+			printf(GREEN "Khoa vat tu thanh cong!\n" RESET);
+			return;
         }
     }
     printf(RED "Khong tim thay vat tu!\n" RESET);
@@ -191,8 +260,12 @@ void unlockMat(Material *arr, int length) {
     char id[10]; getIdNumber(id, "Nhap ID vat tu can mo khoa", sizeof(id));
     for (int i = 0; i < length; i++) {
         if (strcmp(arr[i].matId, id) == 0) {
-            if (arr[i].status == 1) { printf(YELLOW "Vat tu dang o trang thai su dung!\n" RESET); return; }
-            arr[i].status = 1; printf(GREEN "Mo khoa vat tu thanh cong!\n" RESET); return;
+            if (arr[i].status == 1){
+				printf(YELLOW "Vat tu dang o trang thai su dung!\n" RESET);
+				return;
+			}
+            arr[i].status = 1; printf(GREEN "Mo khoa vat tu thanh cong!\n" RESET);
+			return;
         }
     }
     printf(RED "Khong tim thay vat tu!\n" RESET);
@@ -200,24 +273,35 @@ void unlockMat(Material *arr, int length) {
 
 void deleteMat(Material *arr, int *length) {
     char id[10]; int index = -1; getIdNumber(id, "Nhap ID vat tu can xoa", sizeof(id));
-    for (int i = 0; i < *length; i++) if (strcmp(arr[i].matId, id) == 0) { index = i; break; }
-    if (index == -1) { printf(RED "Khong tim thay vat tu!\n" RESET); return; }
+    for (int i = 0; i < *length; i++)
+	if (strcmp(arr[i].matId, id) == 0) { index = i; break; }
+    if (index == -1) { printf(RED "Khong tim thay vat tu!\n" RESET);
+		return; }
     for (int i = index; i < *length - 1; i++) arr[i] = arr[i + 1];
     (*length)--; printf(GREEN "Da xoa thanh cong!\n" RESET);
 }
 
 void matStatus(Material *arr, int *length) {
     int choice4;
+    char choiceStr[10];
     do {
-        printf("========== QUAN LY TRANG THAI ==========");
+        printf(GRAY "========== QUAN LY TRANG THAI ==========" RESET);
         printf("\n1. Khoa vat tu\n2. Mo khoa vat tu\n3. Xoa vat tu\n4. Thoat\n");
-        printf("Lua chon: "); scanf("%d", &choice4); getchar();
+		choice4 = getMenuChoice("Lua chon: ");
         switch(choice4) {
-            case 1: lockMat(arr, *length); break;
-            case 2: unlockMat(arr, *length); break;
-            case 3: deleteMat(arr, length); break;
-            case 4: break;
-            default: printf(RED "Vui long chon 1-4!\n" RESET);
+            case 1:
+				lockMat(arr, *length);
+				break;
+            case 2:
+				unlockMat(arr, *length);
+				break;
+            case 3:
+				deleteMat(arr, length);
+				break;
+            case 4:
+				break;
+            default:
+				printf(RED "Vui long chon 1-4!\n" RESET);
         }
     } while(choice4 != 4);
 }
@@ -231,17 +315,15 @@ void searchMaterial(Material arr[], int length) {
 
     int choose;
     char keyword[50];
-
-    printf("\n========== TRA CUU VAT TU ==========\n");
-    printf("1. Tim theo ID\n");
+	char chooseStr[10];
+	do{
+    printf(GRAY "\n========== TRA CUU VAT TU ==========" RESET);
+    printf("\n1. Tim theo ID\n");
     printf("2. Tim theo ten\n");
-    printf("\nChon chuc nang: ");
-    scanf("%d", &choose);
-    getchar();
-
+    choose = getMenuChoice("Nhap lua chon: ");
     do {
         printf("Nhap tu khoa can tim: ");
-        fgets(keyword, sizeof(keyword), stdin);
+        if (fgets(keyword, sizeof(keyword), stdin) == NULL) keyword[0] = '\0';
         keyword[strcspn(keyword, "\n")] = '\0';
         removeSpaces(keyword);
         if (strlen(keyword) == 0) {
@@ -251,13 +333,13 @@ void searchMaterial(Material arr[], int length) {
 
     char keyLower[50];
     strcpy(keyLower, keyword);
-    toLower(keyLower);
+    toLowerStr(keyLower);
 
     int found = 0;
 
     printf("\n%-10s | %-20s | %-10s | %-8s | %-10s\n",
            "ID", "Ten vat tu", "Don vi", "So luong", "Trang thai");
-    printf("---------------------------------------------------------------\n");
+    printf(GRAY "---------------------------------------------------------------\n" RESET);
 
     switch (choose) {
         case 1:
@@ -275,7 +357,7 @@ void searchMaterial(Material arr[], int length) {
             for (int i = 0; i < length; i++) {
                 char nameLower[50];
                 strcpy(nameLower, arr[i].name);
-                toLower(nameLower);
+                toLowerStr(nameLower);
 
                 if (strstr(nameLower, keyLower) != NULL) {
                     printf(GREEN "%-10s | %-20s | %-10s | %-8d | %-10s\n" RESET,
@@ -292,6 +374,7 @@ void searchMaterial(Material arr[], int length) {
     if (!found) {
         printf(YELLOW "\nKhong tim thay ket qua!\n" RESET);
     }
+}while(choose != 2);
 }
 
 // F05: Phan trang
@@ -306,13 +389,13 @@ void listMat(Material *arr, int length) {
     int totalPage = (length + matPerPage - 1) / matPerPage;
     int choice;
     int page;
-
+	char choiceStr[10];
     do {
         int start = (currentPage - 1) * matPerPage;
         int end = start + matPerPage;
         if (end > length) end = length;
 
-        printf("\n============== DANH SACH VAT TU (Trang %d / %d) ==============\n",
+        printf(GRAY "\n============== DANH SACH VAT TU (Trang %d / %d) ==============\n" RESET,
                currentPage, totalPage);
         printf("%-10s %-20s %-10s %-10s %-10s\n",
                "ID", "Ten", "Don vi", "So luong", "Trang thai");
@@ -324,11 +407,9 @@ void listMat(Material *arr, int length) {
                    arr[i].qty, arr[i].status == 1 ? "Con SD" : "Het Han");
         }
 
-        printf("-------------------------------------------------------------\n");
+        printf(GRAY "-------------------------------------------------------------\n" RESET);
         printf("1. Trang truoc\t2. Trang sau\t3. Den trang\t4. Thoat\n");
-        printf("Lua chon: ");
-        scanf("%d", &choice);
-        getchar();
+        choice = getMenuChoice("Nhap lua chon: ");
 
         switch (choice) {
             case 1:
@@ -359,24 +440,25 @@ void listMat(Material *arr, int length) {
 // F06: Sap xep vat tu
 void sortMat(struct Material *arr, int length) {
     int choice;
+    char choiceStr[10];
     while (1) {
-        printf("\n===== MENU SAP XEP =====\n");
-        printf("1. Sap xep theo ten (A-Z, khong phan biet hoa thuong)\n");
+        printf(GRAY "\n===== MENU SAP XEP =====" RESET);
+        printf("\n1. Sap xep theo ten (A-Z, khong phan biet hoa thuong)\n");
         printf("2. Sap xep theo so luong (tang dan)\n");
         printf("3. Sap xep theo so luong (Giam dan)\n");
         printf("4. Thoat\n");
-        printf("Lua chon cua ban: ");
-        scanf("%d", &choice);
-        getchar();
+        choice = getMenuChoice("Nhap lua chon: ");
 
         switch (choice) {
             case 1: {
                 for (int i = 0; i < length - 1; i++) {
                     for (int j = 0; j < length - i - 1; j++) {
-                        const char *a = arr[j].name;
-                        const char *b = arr[j + 1].name;
-                        while (*a && *b && tolower(*a) == tolower(*b)) { a++; b++; }
-                        if (tolower(*a) > tolower(*b)) {
+                        char a[50], b[50];
+                        strcpy(a, arr[j].name);
+                        strcpy(b, arr[j+1].name);
+                        toLowerStr(a);
+                        toLowerStr(b);
+                        if (strcmp(a, b) > 0) {
                             Material tmp = arr[j];
                             arr[j] = arr[j + 1];
                             arr[j + 1] = tmp;
@@ -399,18 +481,19 @@ void sortMat(struct Material *arr, int length) {
                 printf(GREEN "Da sap xep theo so luong tang dan!\n" RESET);
                 break;
             }
-            case 3:
+            case 3: {
                 for (int i = 0; i < length - 1; i++) {
-                    for (int j = i + 1; j < length; j++) {
-                        if (arr[i].qty < arr[j].qty) {
-                            Material temp = arr[i];
-                            arr[i] = arr[j];
-                            arr[j] = temp;
+                    for (int j = 0; j < length - i - 1; j++) {
+                        if (arr[j].qty < arr[j + 1].qty) {
+                            Material tmp = arr[j];
+                            arr[j] = arr[j + 1];
+                            arr[j + 1] = tmp;
                         }
                     }
                 }
                 printf(GREEN "Da sap xep theo So luong giam dan!\n" RESET);
                 break;
+            }
             case 4:
                 printf(GREEN "Da thoat chuc nang sap xep!\n" RESET);
                 return;
@@ -435,9 +518,8 @@ void transaction(Material *arr, int length, Transaction *transArr, int *transLen
     char id[10];
     int index = -1;
     int choose, amount;
-
+	char choiceStr[10];
     getIdNumber(id, "Nhap ID vat tu can giao dich", sizeof(id));
-
     for (int i = 0; i < length; i++) {
         if (strcmp(arr[i].matId, id) == 0) {
             index = i;
@@ -454,12 +536,10 @@ void transaction(Material *arr, int length, Transaction *transArr, int *transLen
         printf(YELLOW "Vat tu dang bi khoa, khong the giao dich!\n" RESET);
         return;
     }
-
+	printf(GRAY "========== MENU NHAP/XUAT ==========" RESET);
     printf("\n1. Nhap kho (IN)");
     printf("\n2. Xuat kho (OUT)");
-    printf("\nLua chon: ");
-    scanf("%d", &choose);
-    getchar();
+    choose = getMenuChoice("\nNhap lua chon: ");
 
     if (choose != 1 && choose != 2) {
         printf(RED "Lua chon khong hop le!\n" RESET);
@@ -475,6 +555,11 @@ void transaction(Material *arr, int length, Transaction *transArr, int *transLen
 
     if (choose == 2 && amount > arr[index].qty) {
         printf(YELLOW "Khong du so luong de xuat!\n" RESET);
+        return;
+    }
+
+    if (*transLen >= MAX_TRANS) {
+        printf(RED "Khong the luu them giao dich. Da dat gioi han (%d).\n" RESET, MAX_TRANS);
         return;
     }
 
@@ -507,13 +592,13 @@ void listTransaction(Transaction *transArr, int transLen) {
     int totalPage = (transLen + transPerPage - 1) / transPerPage;
     int currentPage = 1;
     int choice, page;
-
+	char choiceStr[10];
     do {
         int start = (currentPage - 1) * transPerPage;
         int end = start + transPerPage;
         if (end > transLen) end = transLen;
 
-        printf("\n========== LICH SU GIAO DICH (Trang %d / %d) ==========\n",
+        printf(GRAY "\n========== LICH SU GIAO DICH (Trang %d / %d) ==========\n" RESET,
                currentPage, totalPage);
         printf("%-10s | %-10s | %-5s | %-6s | %-12s\n",
                "Ma GD", "Ma VT", "Loai", "So luong", "Ngay");
@@ -528,11 +613,9 @@ void listTransaction(Transaction *transArr, int transLen) {
                    transArr[i].date);
         }
 
-        printf("----------------------------------------------------\n");
+        printf(GRAY "----------------------------------------------------\n" RESET);
         printf("1. Trang truoc\t2. Trang sau\t3. Den trang\t4. Thoat\n");
-        printf("Lua chon: ");
-        scanf("%d", &choice);
-        getchar();
+        choice = getMenuChoice("Nhap lua chon: ");
 
         switch (choice) {
             case 1:
@@ -564,47 +647,87 @@ void listTransaction(Transaction *transArr, int transLen) {
 int main() {
     int choice1 = 0, choice2 = 0, choice3 = 0;
     int length = 10;
-    Material arr[100]; for(int i=0;i<10;i++) arr[i]=initList[i];
-    Transaction transArr[200]; int transLen = 0;
-
+    Material arr[MAX_MAT];
+    for(int i = 0; i < 10; i++){
+        arr[i] = initList[i];
+    }
+    Transaction transArr[MAX_TRANS];
+    int transLen = 0;
+	char choiceStr[10];
     do {
-        printf("\n========== MENU QUAN LY VAT TU ==========");
+        printf(GRAY "\n========== MENU QUAN LY VAT TU ==========" RESET);
         printf("\n1. Quan ly tai khoan\n2. Quan ly giao dich\n3. Thoat\n");
-        printf("Nhap lua chon: "); scanf("%d", &choice1); getchar();
-
+		choice1 = getMenuChoice("Nhap lua chon: ");
         switch(choice1) {
             case 1:
+            	char choiceStr1[10];
                 do {
-                    printf("\n========== MENU QUAN LY TAI KHOAN ==========");
+                    printf(GRAY "\n========== MENU QUAN LY TAI KHOAN ==========" RESET);
                     printf("\n1. Them ma hang moi\n2. Cap nhat thong tin\n3. Quan ly trang thai (Khoa/Xoa)");
                     printf("\n4. Tra cuu\n5. Danh sach\n6. Sap xep danh sach\n7. Thoat\n");
-                    printf("Nhap lua chon: "); scanf("%d", &choice2); getchar();
+                    choice2 = getMenuChoice("Nhap lua chon: ");
                     switch(choice2){
-                        case 1: addMat(arr, &length); break;
-                        case 2: updateMat(arr, length); break;
-                        case 3: matStatus(arr, &length); break;
-                        case 4: searchMaterial(arr, length); break;
-                        case 5: listMat(arr, length); break;
-                        case 6: sortMat(arr, length); listMat(arr, length); break;
-                        case 7: printf(GREEN "Thoat chuong trinh...\n" RESET); break;
-                        default: printf(RED "Vui long chon 1-7!\n" RESET);
+                        case 1:
+                            addMat(arr, &length);
+                            break;
+
+                        case 2:
+                            updateMat(arr, length);
+                            break;
+
+                        case 3:
+                            matStatus(arr, &length);
+                            break;
+
+                        case 4:
+                            searchMaterial(arr, length);
+                            break;
+
+                        case 5:
+                            listMat(arr, length);
+                            break;
+
+                        case 6:
+                            sortMat(arr, length);
+							listMat(arr, length);
+                            break;
+
+                        case 7:
+                            printf(GREEN "Thoat chuong trinh...\n" RESET);
+                            break;
+
+                        default:
+                            printf(RED "Vui long chon 1-7!\n" RESET);
                     }
                 } while(choice2 != 7);
                 break;
             case 2:
-                do {
-                    printf("========== MENU QUAN LY GIAO DICH ==========");
-                    printf("\n1. Giao dich xuat/nhap vat tu\n2. Lich su xuat/nhap\n3. Thoat\n");
-                    printf("Nhap lua chon: "); scanf("%d", &choice3); getchar();
+                char choiceStr2[10];
+				do {
+					printf(GRAY "========== MENU QUAN LY GIAO DICH ==========" RESET);
+				    printf("\n1. Giao dich xuat/nhap vat tu\n2. Lich su xuat/nhap\n3. Thoat\n");
+				    choice3 = getMenuChoice("Nhap lua chon: ");
                     switch(choice3){
-                        case 1: transaction(arr, length, transArr, &transLen); break;
-                        case 2: listTransaction(transArr, transLen); break;
-                        case 3: printf(GREEN "\nThoat chuong trinh..." RESET); break;
-                        default: printf(RED "Vui long chon 1-3!\n" RESET);
+                        case 1:
+                            transaction(arr, length, transArr, &transLen);
+                            break;
+
+                        case 2:
+                            listTransaction(transArr, transLen);
+                            break;
+
+                        case 3:
+                            printf(GREEN "\nThoat chuong trinh..." RESET);
+                            break;
+
+                        default:
+                            printf(RED "Vui long chon 1-3!\n" RESET);
                     }
                 } while(choice3 != 3);
                 break;
-            case 3: printf(GREEN "Thoat chuong trinh...\n" RESET); exit(0);
+            case 3:
+                printf(GREEN "Thoat chuong trinh...\n" RESET);
+                exit(0);
             default: printf(RED "Vui long chon 1-3!\n" RESET);
         }
     } while(choice1 != 3);
