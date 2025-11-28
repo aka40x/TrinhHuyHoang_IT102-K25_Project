@@ -424,6 +424,7 @@ void listMat(Material *arr, int length) {
                 printf("Nhap so trang muon den (1-%d): ", totalPage);
                 scanf("%d", &page);
                 getchar();
+                printf(GREEN "Dang chuyen den trang ban muon..." RESET);
                 if (page >= 1 && page <= totalPage) currentPage = page;
                 else printf(YELLOW "Trang khong ton tai!\n" RESET);
                 break;
@@ -630,6 +631,7 @@ void listTransaction(Transaction *transArr, int transLen) {
                 printf("Nhap so trang muon den (1-%d): ", totalPage);
                 scanf("%d", &page);
                 getchar();
+                printf(GREEN "Dang chuyen den trang ban muon..." RESET);
                 if (page >= 1 && page <= totalPage) currentPage = page;
                 else printf(YELLOW "Trang khong ton tai!\n" RESET);
                 break;
